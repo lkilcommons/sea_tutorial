@@ -180,7 +180,7 @@ ssn_by_event = <span class="pl-k">zeros</span>(n_solar_cycles,nbins);
   this_ssn = ssn(this_solar_cycle_times);
 
   <span class="pl-k">for</span> t = <span class="pl-c1">1</span>:nbins-<span class="pl-c1">1</span>
-    in_bin_t = this_epoch_time <span class="pl-k">&gt;=</span> time_bins(t) <span class="pl-k">&amp;</span> this_epoch_time <span class="pl-k">&lt;</span> time_bins(t+<span class="pl-c1">1</span>);
+    in_bin_t = this_epoch_time <span class="pl-k">&gt;=</span> time_bin_edges(t) <span class="pl-k">&amp;</span> this_epoch_time <span class="pl-k">&lt;</span> time_bin_edges(t+<span class="pl-c1">1</span>);
     ssn_by_event(m,t) = <span class="pl-k">mean</span>(this_ssn(in_bin_t));
   <span class="pl-k">end</span>
 
