@@ -1,0 +1,256 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Superposed Epoch Analysis Tutoral by lkilcommons</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-light.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1 class="header">Superposed Epoch Analysis Tutoral</h1>
+        <p class="header">SEA Tutorial For MATLAB</p>
+
+        <ul>
+          <li class="download"><a class="buttons" href="https://github.com/lkilcommons/sea_tutorial/zipball/master">Download ZIP</a></li>
+          <li class="download"><a class="buttons" href="https://github.com/lkilcommons/sea_tutorial/tarball/master">Download TAR</a></li>
+          <li><a class="buttons github" href="https://github.com/lkilcommons/sea_tutorial">View On GitHub</a></li>
+        </ul>
+
+        <p class="header">This project is maintained by <a class="header name" href="https://github.com/lkilcommons">lkilcommons</a></p>
+
+
+      </header>
+      <section>
+        <h1>
+<a id="superposed-epoch-analysis-in-matlab" class="anchor" href="#superposed-epoch-analysis-in-matlab" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Superposed Epoch Analysis in MATLAB</h1>
+
+<p><img src="https://lkilcommons.github.com/sea_tutorial/dst1hrdst1hrepoch.png" alt="An example I created of a superposed epoch analysis of the Disturbance Storm Time index"></p>
+
+<blockquote>
+<p>In this superposed epoch plot, I am showing the response of the Disturbance Storm Time index to Coronal Mass Ejections (CMEs) hitting
+the earth's magnetic field. The DST measures the strength of the ring current, and is a proxy for the overall geomagnetic activity.
+The green lines each represent an individual storm, and the red, black, and blue lines are the statistical response</p>
+</blockquote>
+
+<h2>
+<a id="what-is-superposed-epoch-analysis" class="anchor" href="#what-is-superposed-epoch-analysis" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>What is superposed epoch analysis?</h2>
+
+<p>Superposed epoch analysis, also called <em>compositing</em>, 
+is a technique for analyzing data that consists of measurements of the state of some observable system over time, 
+i.e. a <em>timeseries</em>. More specifically, timeseries data in which some type of event repeatedly reoccurs.</p>
+
+<h2>
+<a id="an-example" class="anchor" href="#an-example" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>An example</h2>
+
+<p>For a simple example from space science, we can consider the eleven year solar cycle, as measured by the sunspot number:
+<img src="http://spaceweather.com/glossary/images2009/zurich_strip.gif" alt="Image of the solar cycle"></p>
+
+<p>While the activity of the sun waxes and wanes every eleven years, there are stronger and weaker cycles. 
+Let's say that we want to develop a simple model to solar forecasters predict the average sunspot number and the range 
+we would expect for any given point in future solar cycles. This is a perfect use case for the superposed epoch analysis.</p>
+
+<h2>
+<a id="step-zero-get-ready" class="anchor" href="#step-zero-get-ready" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Step zero: get ready</h2>
+
+<p>The first tasks in any superposed epoch analysis are to obtain and import your timeseries data.
+Without data, there is no analysis!</p>
+
+<p>I got the data here:
+<a href="http://www.sidc.be/silso/INFO/sndtotcsv.php">Sunspot number data as a CSV (comma separated variable) file</a>
+But it comes as part of the git repository.</p>
+
+<p>Now we must import the data into MATLAB. If you want to follow along, replace the path to the 
+data (<code>/home/liamk/mirror/Projects/superposedepoch_tutorial/</code>) with where you cloned or unzipped the git repository
+on your computer.</p>
+
+<div class="highlight highlight-source-matlab"><pre>sunspot_data = <span class="pl-k">importdata</span>(<span class="pl-s"><span class="pl-pds">'</span>/home/liamk/mirror/Projects/superposedepoch_tutorial/SN_d_tot_V2.0.csv<span class="pl-pds">'</span></span>);</pre></div>
+
+<p>We will need to understand what is in our data.</p>
+
+<p>From SIDC website:</p>
+
+<blockquote>
+<p>Contents:<br>
+Column 1: Year<br>
+Column 2: Month<br>
+Column 3: Day<br>
+Column 4: Date in fraction of year.<br>
+Column 5: Daily total sunspot number. A value of -1 indicates that no number is available for that day (missing value).<br>
+Column 6: Daily standard deviation of the input sunspot numbers from individual stations.<br>
+Column 7: Number of observations used to compute the daily value.<br>
+Column 8: Definitive/provisional indicator. '1' indicates that the value is definitive. '0' indicates that the value is still provisional.  </p>
+</blockquote>
+
+<p>It's usually easier to work with time as a single, monotonically increasing number, rather than having to think about
+how many days are in each month, etc,etc, so it's nice that the data provides us with column 4: "date in fraction of year".
+Let's define that as our time variable, and then use the data from column 5 for our analysis.</p>
+
+<div class="highlight highlight-source-matlab"><pre>time = sunspot_data(:,<span class="pl-c1">4</span>);
+ssn = sunspot_data(:,<span class="pl-c1">5</span>);</pre></div>
+
+<p>Next we should take care of those pesky missing values. If you leave them in there, they can really mess things up. 
+We'll just cut them out of the data entirely.</p>
+
+<div class="highlight highlight-source-matlab"><pre>missing = ssn <span class="pl-k">==</span> -<span class="pl-c1">1</span>;
+time = time(~missing);
+ssn = ssn(~missing);</pre></div>
+
+<p>Now we can really begin.</p>
+
+<h2>
+<a id="step-1-identify-the-events" class="anchor" href="#step-1-identify-the-events" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Step 1: Identify the events</h2>
+
+<p>Superposed epoch analysis (SEA) is all about <em>events</em>, which we can define as re-occurrences of some type of cyclical or episodic process.
+Basically, SEA is appropriate for analyzing anything that happens which has a beginning, middle, and end,
+and plays out similarly over time each time it happens.</p>
+
+<p>Examples of cyclical processes from earth sciences include our solar cycle example, or temperatures at a particular
+weather station in Canada during the rise and fall of the El Nino. Episodic processes
+could include hurricanes passing by a particular observation station in the Pacific ocean, or earthquakes from a particular fault,
+which are observed by a particular seismometer station, or coronal mass ejections hitting the earth's magnetosphere, as observed by ACE, 
+the upstream solar wind monitor spacecraft.</p>
+
+<p>In order to identify specific events, we have to define a single time as the quantitative 'center' of the event, so we can
+tell the beginning of the event apart from the middle and end, and compare the beginnings of different events with eachother,
+as opposed to the beginning of one event with the end of another, etc. In this way we can get a picture of how the process
+plays out over time for a 'typical' event.</p>
+
+<p>Our events will be individual solar cycles. We will use the maximum sunspot number for each solar cycle as our center time (sometimes called the zero epoch time)</p>
+
+<p>I'll give the code for the center times, but I looked them up for the nearest month on <a href="https://en.wikipedia.org/wiki/List_of_solar_cycles">wikipedia</a></p>
+
+<div class="highlight highlight-source-matlab"><pre>solar_cycle_max_times = [<span class="pl-c1">1829</span>+<span class="pl-c1">11</span>/<span class="pl-c1">12</span>,<span class="pl-c1">1837</span>+<span class="pl-c1">3</span>/<span class="pl-c1">12</span>,<span class="pl-c1">1848</span>+<span class="pl-c1">2</span>/<span class="pl-c1">12</span>,<span class="pl-c1">1860</span>+<span class="pl-c1">2</span>/<span class="pl-c1">12</span>,<span class="pl-c1">1870</span>+<span class="pl-c1">8</span>/<span class="pl-c1">12</span>,<span class="pl-c1">1883</span>+<span class="pl-c1">12</span>/<span class="pl-c1">12</span>,...
+<span class="pl-c1">1894</span>+<span class="pl-c1">1</span>/<span class="pl-c1">12</span>,<span class="pl-c1">1906</span>+<span class="pl-c1">2</span>/<span class="pl-c1">12</span>,<span class="pl-c1">1917</span>+<span class="pl-c1">8</span>/<span class="pl-c1">12</span>,<span class="pl-c1">1928</span>+<span class="pl-c1">4</span>/<span class="pl-c1">12</span>,<span class="pl-c1">1937</span>+<span class="pl-c1">4</span>/<span class="pl-c1">12</span>,<span class="pl-c1">1947</span>+<span class="pl-c1">5</span>/<span class="pl-c1">12</span>,...
+<span class="pl-c1">1958</span>+<span class="pl-c1">3</span>/<span class="pl-c1">12</span>,<span class="pl-c1">1958</span>+<span class="pl-c1">3</span>/<span class="pl-c1">12</span>,<span class="pl-c1">1968</span>+<span class="pl-c1">11</span>/<span class="pl-c1">12</span>,<span class="pl-c1">1979</span>+<span class="pl-c1">12</span>/<span class="pl-c1">12</span>,<span class="pl-c1">1989</span>+<span class="pl-c1">7</span>/<span class="pl-c1">12</span>,<span class="pl-c1">2000</span>+<span class="pl-c1">3</span>/<span class="pl-c1">12</span>,<span class="pl-c1">2014</span>+<span class="pl-c1">4</span>/<span class="pl-c1">12</span>];
+
+<span class="pl-c">%Since we don't know if the actual max was nearer the beginning or the end of the month,</span>
+<span class="pl-c">%subtract half a month to put the center time in the middle of the specified month</span>
+solar_cycle_max_times = solar_cycle_max_times-<span class="pl-c1">1</span>/<span class="pl-c1">24</span>;</pre></div>
+
+<p>Note that these are in fractions of the year, the same as our sunspot observation times. Convenient!</p>
+
+<p>Since we want to analyze the response of a typical event, we need to pick an amount of time before and after the
+zero epoch time in which we think we will see something interesting. Since the shortest solar cycle on our list
+is about 9 years, it should be safe to do +- 4 years around our zero epoch time.</p>
+
+<div class="highlight highlight-source-matlab"><pre><span class="pl-c">%Loop through each solar cycle, or 'event'</span>
+<span class="pl-k">for</span> m = <span class="pl-c1">1</span>:<span class="pl-k">length</span>(solar_cycle_max_times)
+  this_solar_cycle_max_time = solar_cycle_max_times(m);
+  this_solar_cycle_times = time <span class="pl-k">&gt;</span> this_solar_cycle_max_time-<span class="pl-c1">4</span> <span class="pl-k">&amp;</span> time <span class="pl-k">&lt;</span> this_solar_cycle_max_time+<span class="pl-c1">4</span>;
+  <span class="pl-c">%More code goes here later</span>
+<span class="pl-k">end</span></pre></div>
+
+<h2>
+<a id="step-2-bin-the-data-into-time-bins-relative-to-the-zero-epoch-time" class="anchor" href="#step-2-bin-the-data-into-time-bins-relative-to-the-zero-epoch-time" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Step 2: Bin the data into time bins relative to the zero epoch time</h2>
+
+<p>If we want to know what the sunspot number 1 year before the maximum is on average, and how that differs from 2 years before,
+we need to divide each event into discrete time bins, so that the times for event 1 line up with exactly with the times for
+event 2, etc. This makes the rest of the process a lot easier because the results can be stored in 
+a [number of events x number of time bins] matrix</p>
+
+<div class="highlight highlight-source-matlab"><pre>n_days_per_bin = <span class="pl-c1">30</span>; <span class="pl-c">%Approx month long bins</span>
+nbins = <span class="pl-k">floor</span>(<span class="pl-c1">365.25</span>*<span class="pl-c1">8</span>/n_days_per_bin);
+time_bin_edges = <span class="pl-k">linspace</span>(-<span class="pl-c1">4</span>,<span class="pl-c1">4</span>,nbins+<span class="pl-c1">1</span>);
+
+n_solar_cycles = <span class="pl-k">length</span>(solar_cycle_max_times);
+
+<span class="pl-c">%Preallocate an array in which we will store our final results</span>
+<span class="pl-c">%each row will represent a solar cycle, each column, a time bin</span>
+ssn_by_event = <span class="pl-k">zeros</span>(n_solar_cycles,nbins);
+
+<span class="pl-c">%Loop through events, and bin sunspot number data into time bins, and assign into</span>
+<span class="pl-c">%the results array</span>
+
+<span class="pl-k">for</span> m = <span class="pl-c1">1</span>:n_solar_cycles
+  this_solar_cycle_max_time = solar_cycle_max_times(m); 
+
+  <span class="pl-c">%Create variables for sunspot number observations for just this solar cycle, with 0 epoch time being</span>
+  <span class="pl-c">%the sunspot maximum</span>
+  this_solar_cycle_times = time <span class="pl-k">&gt;</span> this_solar_cycle_max_time-<span class="pl-c1">4</span> <span class="pl-k">&amp;</span> time <span class="pl-k">&lt;</span> this_solar_cycle_max_time+<span class="pl-c1">4</span>;
+  this_epoch_time = time(this_solar_cycle_times)-this_solar_cycle_max_time;
+  this_ssn = ssn(this_solar_cycle_times);
+
+  <span class="pl-k">for</span> t = <span class="pl-c1">1</span>:nbins-<span class="pl-c1">1</span>
+    in_bin_t = this_epoch_time <span class="pl-k">&gt;=</span> time_bins(t) <span class="pl-k">&amp;</span> this_epoch_time <span class="pl-k">&lt;</span> time_bins(t+<span class="pl-c1">1</span>);
+    ssn_by_event(m,t) = <span class="pl-k">mean</span>(this_ssn(in_bin_t));
+  <span class="pl-k">end</span>
+
+<span class="pl-k">end</span></pre></div>
+
+<h2>
+<a id="step-3-compute-statistics-about-the-data-in-each-time-bin" class="anchor" href="#step-3-compute-statistics-about-the-data-in-each-time-bin" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Step 3: Compute statistics about the data in each time bin</h2>
+
+<p>Now that we have the data all nicely arranged in a matrix <code>ssn_by_event</code>, where 
+each row represents one of the solar cycles, and each column one of the time bins,
+we can use matlab's median and quantile functions to get the average sunspot number
+across all of the solar cycles for each time bin.</p>
+
+<div class="highlight highlight-source-matlab"><pre><span class="pl-c">%Take the median of each column, to represent the average response for that</span>
+<span class="pl-c">%time bin, also take the 25th and 75th percentiles of each column, to</span>
+<span class="pl-c">%represent the spread in sunspot numbers for that time bin</span>
+time_bin_centers = (time_bin_edges(<span class="pl-c1">1</span>:<span class="pl-k">end</span>-<span class="pl-c1">1</span>)+time_bin_edges(<span class="pl-c1">2</span>:<span class="pl-k">end</span>))/<span class="pl-c1">2</span>;
+average_ssn = <span class="pl-c1">nanmedian</span>(ssn_by_event,<span class="pl-c1">1</span>); <span class="pl-c">%The 1 means to take the median for each column, not each row</span>
+first_quartile_ssn = <span class="pl-c1">quantile</span>(ssn_by_event,<span class="pl-c1">.25</span>,<span class="pl-c1">1</span>);
+third_quartile_ssn = <span class="pl-c1">quantile</span>(ssn_by_event,<span class="pl-c1">.75</span>,<span class="pl-c1">1</span>);</pre></div>
+
+<h2>
+<a id="step-4-plot-your-results-and-figure-out-what-they-are-telling-you" class="anchor" href="#step-4-plot-your-results-and-figure-out-what-they-are-telling-you" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Step 4: Plot your results and figure out what they are telling you</h2>
+
+<div class="highlight highlight-source-matlab"><pre><span class="pl-c">%Plot the results</span>
+f = <span class="pl-c1">figure</span>();
+a = <span class="pl-c1">axes</span>(); <span class="pl-c1">hold</span>(a,<span class="pl-s"><span class="pl-pds">'</span>on<span class="pl-pds">'</span></span>);
+<span class="pl-c1">plot</span>(a,time_bin_centers,average_ssn,<span class="pl-s"><span class="pl-pds">'</span>b-<span class="pl-pds">'</span></span>);
+<span class="pl-c1">plot</span>(a,time_bin_centers,first_quartile_ssn,<span class="pl-s"><span class="pl-pds">'</span>r--<span class="pl-pds">'</span></span>);
+<span class="pl-c1">plot</span>(a,time_bin_centers,third_quartile_ssn,<span class="pl-s"><span class="pl-pds">'</span>r--<span class="pl-pds">'</span></span>);
+<span class="pl-c1">xlabel</span>(<span class="pl-s"><span class="pl-pds">'</span>Years since maximum sunspot number<span class="pl-pds">'</span></span>);
+<span class="pl-c1">ylabel</span>(<span class="pl-s"><span class="pl-pds">'</span>International Sunspot Number<span class="pl-pds">'</span></span>);
+<span class="pl-c1">title</span>(<span class="pl-k">sprintf</span>(<span class="pl-s"><span class="pl-pds">'</span>Superposed Epoch Analysis of <span class="pl-cce">%d</span> Solar Cycles (<span class="pl-cce">%d</span>-<span class="pl-cce">%d</span>)<span class="pl-pds">'</span></span>,n_solar_cycles,...
+    <span class="pl-k">floor</span>(time(<span class="pl-c1">1</span>)),<span class="pl-k">floor</span>(time(<span class="pl-k">end</span>))));
+<span class="pl-c1">print</span>(f,<span class="pl-s"><span class="pl-pds">'</span>-dpng<span class="pl-pds">'</span></span>,<span class="pl-s"><span class="pl-pds">'</span>sunspot_number_sea.png<span class="pl-pds">'</span></span>);</pre></div>
+
+<p><img src="https://lkilcommons.github.com/sea_tutorial/sunspot_number_sea.png" alt="Sunspot number solar cycle superposed epoch results"></p>
+
+<p>Here we can see the results! The interpretation is an exercise for the reader, for now ;)</p>
+
+<h2>
+<a id="appendix-an-alternate-technique-without-time-binning" class="anchor" href="#appendix-an-alternate-technique-without-time-binning" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Appendix: An alternate technique without time binning</h2>
+
+<p>Many people will skip the time binning step and just try to line up the data for each 
+event by depending on the fact that the data comes in on a regular cadence (in the case of our sunspot data, 
+this is one value for each day). In this case, you can simply define each event as +- 1461
+values from the data array around the index of the value at the zero epoch time:</p>
+
+<div class="highlight highlight-source-matlab"><pre><span class="pl-c">%Loop through each solar cycle, or 'event'</span>
+<span class="pl-k">for</span> m = <span class="pl-c1">1</span>:<span class="pl-k">length</span>(solar_cycle_max_times)
+  this_solar_cycle_max_time = solar_cycle_max_times(m);
+
+  <span class="pl-c">%Assumes that time is sorted in ascending order (usually true)</span>
+  closest_ssn_index_to_max_time = <span class="pl-k">find</span>(time&gt;this_solar_cycle_max_time,<span class="pl-c1">1</span>); 
+
+  <span class="pl-c">%4 years in days = 365.25*4=1461</span>
+  ssns_in_this_event = ssn(closest_ssn_index_to_max_time-<span class="pl-c1">1461</span>:closest_ssn_index_to_max_time+<span class="pl-c1">1461</span>);
+
+  <span class="pl-c">%More code goes here later</span>
+<span class="pl-k">end</span></pre></div>
+
+<p>This works fine, as long as there are no large chunks of missing data and you really can depend
+on the fact that the n-th point in the data array is for day n, and the n+1-th point is for day n+1,
+or whatever is the appropriate time step for your dataset.</p>
+      </section>
+      <footer>
+        <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+		
+  </body>
+</html>
