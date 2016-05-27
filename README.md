@@ -182,7 +182,7 @@ print(f,'-dpng','sunspot_number_sea.png');
 ```
 ![Sunspot number solar cycle superposed epoch results](sunspot_number_sea.png)
 
-Here we can see the results!
+Here we can see the results! The interpretation is an exercise for the reader, for now ;)
 
 ## Appendix: An alternate technique without time binning
 
