@@ -1,6 +1,6 @@
 # Superposed Epoch Analysis in MATLAB
 
-![An example I created of a superposed epoch analysis of the Disturbance Storm Time index](https://github.com/lkilcommons/sea_tutorial/dst1hrdst1hrepoch.png)
+![An example I created of a superposed epoch analysis of the Disturbance Storm Time index](dst1hrdst1hrepoch.png)
 > In this superposed epoch plot, I am showing the reponse of the Disturbance Storm Time index to Coronal Mass Ejections (CMEs) hitting
 > the earth's magnetic field. The DST measures the strength of the ring current, and is a proxy for the overall geomagnetic activity.
 > The green lines each represent an individual storm, and the red, black, and blue lines are the statistical response
@@ -180,9 +180,9 @@ title(sprintf('Superposed Epoch Analysis of %d Solar Cycles (%d-%d)',n_solar_cyc
     floor(time(1)),floor(time(end))));
 print(f,'-dpng','sunspot_number_sea.png');
 ```
-![Sunspot number solar cycle superposed epoch results](https://github.com/lkilcommons/sea_tutorial/sunspot_number_sea.png)
+![Sunspot number solar cycle superposed epoch results](sunspot_number_sea.png)
 
-Here we can see the results!
+Here we can see the results! The interpretation is an exercise for the reader, for now ;)
 
 ## Appendix: An alternate technique without time binning
 
