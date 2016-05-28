@@ -27,6 +27,7 @@ solar_cycle_max_times = solar_cycle_max_times-1/24;
 %Time Binning
 %------------
 
+
 n_days_per_bin = 30; %Approx month long bins
 nbins = floor(365.25*8/n_days_per_bin);
 time_bin_edges = linspace(-4,4,nbins+1);
@@ -50,7 +51,7 @@ for m = 1:n_solar_cycles
   this_ssn = ssn(this_solar_cycle_times);
   
   for t = 1:nbins-1
-    in_bin_t = this_epoch_time >= time_bins(t) & this_epoch_time < time_bins(t+1);
+    in_bin_t = this_epoch_time >= time_bin_edges(t) & this_epoch_time < time_bin_edges(t+1);
     ssn_by_event(m,t) = mean(this_ssn(in_bin_t));
   end
   
